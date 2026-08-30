@@ -44,7 +44,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT || 21 }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          server-dir: finance.corecraft.my.id/
+          server-dir: /
           dry-run: false
           dangerous-clean-slate: false
           exclude: |
