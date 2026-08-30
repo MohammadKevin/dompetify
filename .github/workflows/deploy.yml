@@ -28,8 +28,8 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            # Masuk ke direktori web di VPS (sesuaikan path jika berbeda)
-            cd /var/www/finance.corecraft.my.id || cd /var/www/dompetify
+            # Masuk ke direktori web di cPanel / VPS
+            cd /home/finance4/dompetify || cd /var/www/finance.corecraft.my.id || cd /var/www/dompetify
             
             # Tarik kode terbaru dari GitHub
             git pull origin main
