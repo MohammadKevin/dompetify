@@ -27,9 +27,10 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Dependencies
+      - name: Setup Platform Project & Install Dependencies
         run: |
           cd frontend
+          flutter create --platforms=android .
           flutter pub get
 
       - name: Build APK Release
