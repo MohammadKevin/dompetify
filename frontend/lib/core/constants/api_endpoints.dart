@@ -1,10 +1,10 @@
 class ApiEndpoints {
-  // In Android emulator use 10.0.2.2; on real device / desktop use local machine IP or 127.0.0.1
+  static const String productionBaseUrl = 'https://finance.corecraft.my.id/api';
   static const String defaultBaseUrl = 'http://10.0.2.2:8000/api';
   static const String desktopBaseUrl = 'http://127.0.0.1:8000/api';
 
-  // Configurable base URL
-  static String baseUrl = desktopBaseUrl;
+  // Configurable base URL (defaulting to live production VPS)
+  static String baseUrl = productionBaseUrl;
 
   // Wallets
   static const String wallets = '/wallets';
