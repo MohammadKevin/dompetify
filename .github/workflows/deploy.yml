@@ -3,17 +3,6 @@ name: Deploy Laravel Backend to DomaiNesia cPanel (FTP)
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'bootstrap/**'
-      - 'config/**'
-      - 'database/**'
-      - 'public/**'
-      - 'resources/**'
-      - 'routes/**'
-      - 'composer.json'
-      - 'composer.lock'
-      - '.htaccess'
   workflow_dispatch:
 
 jobs:
@@ -22,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🚚 Get latest code
+      - name: 🚚 Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: ⚙️ Setup PHP 8.3
+      - name: ⚙️ Setup PHP 8.3 Environment
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
@@ -54,8 +43,8 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT || 21 }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
-          server-dir: public_html/finance.corecraft.my.id/
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
+          server-dir: finance.corecraft.my.id/
           dry-run: false
           dangerous-clean-slate: false
           exclude: |
@@ -69,9 +58,13 @@ jobs:
             **/.editorconfig
             **/.env
             **/.env.*
-            !**/.env.example
             **/storage/logs/*
+            **/storage/framework/cache/data/*
+            **/storage/framework/sessions/*
+            **/storage/framework/views/*
             **/storage/app/public/*
             **/.claude/**
             **/.kiro/**
+            **/.ai/**
             **/boost.json
+            **/.phpunit.result.cache
