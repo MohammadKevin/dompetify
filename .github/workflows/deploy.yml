@@ -1,4 +1,4 @@
-name: Deploy Laravel Backend to VPS
+name: Deploy Laravel Backend to DomaiNesia cPanel (FTP)
 
 on:
   push:
@@ -8,46 +8,70 @@ on:
       - 'bootstrap/**'
       - 'config/**'
       - 'database/**'
+      - 'public/**'
+      - 'resources/**'
       - 'routes/**'
       - 'composer.json'
       - 'composer.lock'
+      - '.htaccess'
   workflow_dispatch:
 
 jobs:
-  deploy:
-    name: Deploy to Production VPS
+  web-deploy:
+    name: Build & FTP Deploy
     runs-on: ubuntu-latest
 
     steps:
-      - name: SSH and Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script: |
-            # Masuk ke direktori web di cPanel / VPS
-            cd /home/finance4/dompetify || cd /var/www/finance.corecraft.my.id || cd /var/www/dompetify
-            
-            # Tarik kode terbaru dari GitHub
-            git pull origin main
-            
-            # Update dependensi PHP produksi
-            composer install --no-dev --optimize-autoloader --no-interaction
-            
-            # Jalankan migrasi database otomatis jika ada perubahan tabel
-            php artisan migrate --force
-            
-            # Refresh dan optimalkan cache Laravel
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan storage:link --quiet || true
-            
-            # Pastikan perizinan folder storage
-            sudo chmod -R 775 storage bootstrap/cache || chmod -R 775 storage bootstrap/cache
-            sudo chown -R www-data:www-data storage bootstrap/cache || true
-            
-            echo "🚀 Deployment Berhasil Selesai!"
+          fetch-depth: 2
+
+      - name: ⚙️ Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, curl, zip, gd
+          tools: composer:v2
+
+      - name: 📦 Install Composer Dependencies (Production)
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: 📁 Ensure Storage Directory Structure
+        run: |
+          mkdir -p storage/app/public
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/logs
+          chmod -R 775 storage bootstrap/cache
+
+      - name: 🚀 Sync Files via FTP to cPanel
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          protocol: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+          server-dir: public_html/finance.corecraft.my.id/
+          dry-run: false
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/frontend/**
+            **/tests/**
+            **/phpunit.xml
+            **/README.md
+            **/.editorconfig
+            **/.env
+            **/.env.*
+            !**/.env.example
+            **/storage/logs/*
+            **/storage/app/public/*
+            **/.claude/**
+            **/.kiro/**
+            **/boost.json

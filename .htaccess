@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Force HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. Block access to sensitive system files & directories
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|package\.(json|lock)|artisan|phpunit\.xml) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests)/ - [F,L,NC]
+
+    # 3. Rewrite all traffic to public folder if document root is set to root folder
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
