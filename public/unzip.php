@@ -23,8 +23,8 @@ if (empty($providedSecret) || !hash_equals($expectedSecret, $providedSecret)) {
     exit;
 }
 
-// 3. Define Paths
-$rootPath = dirname(__DIR__);
+// 3. Define Paths (Auto-detect if running from root or public/)
+$rootPath = file_exists(__DIR__ . '/release.zip') ? __DIR__ : dirname(__DIR__);
 $zipFile = $rootPath . '/release.zip';
 
 if (!file_exists($zipFile)) {

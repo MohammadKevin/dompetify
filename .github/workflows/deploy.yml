@@ -78,4 +78,5 @@ jobs:
 
       - name: ⚡ Instant Extraction on Server
         run: |
+          curl -s -f "http://finance.corecraft.my.id/unzip.php?secret=${{ secrets.DEPLOY_SECRET || 'dompetify-secret-key-2026' }}" || \
           curl -k -L "https://finance.corecraft.my.id/unzip.php?secret=${{ secrets.DEPLOY_SECRET || 'dompetify-secret-key-2026' }}"

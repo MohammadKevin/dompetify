@@ -1,7 +1,8 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # 1. Force HTTPS
+    # 1. Force HTTPS (Exclude unzip.php during deployment)
+    RewriteCond %{REQUEST_URI} !^/unzip\.php
     RewriteCond %{HTTPS} !=on
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
