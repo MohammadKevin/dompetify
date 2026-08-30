@@ -1,0 +1,53 @@
+name: Deploy Laravel Backend to VPS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'composer.json'
+      - 'composer.lock'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH and Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            # Masuk ke direktori web di VPS (sesuaikan path jika berbeda)
+            cd /var/www/finance.corecraft.my.id || cd /var/www/dompetify
+            
+            # Tarik kode terbaru dari GitHub
+            git pull origin main
+            
+            # Update dependensi PHP produksi
+            composer install --no-dev --optimize-autoloader --no-interaction
+            
+            # Jalankan migrasi database otomatis jika ada perubahan tabel
+            php artisan migrate --force
+            
+            # Refresh dan optimalkan cache Laravel
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan storage:link --quiet || true
+            
+            # Pastikan perizinan folder storage
+            sudo chmod -R 775 storage bootstrap/cache || chmod -R 775 storage bootstrap/cache
+            sudo chown -R www-data:www-data storage bootstrap/cache || true
+            
+            echo "🚀 Deployment Berhasil Selesai!"
