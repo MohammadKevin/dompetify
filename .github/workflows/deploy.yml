@@ -7,14 +7,12 @@ on:
 
 jobs:
   web-deploy:
-    name: Build, Zip & FTP Deploy
+    name: Build & Direct FTP Deploy
     runs-on: ubuntu-latest
 
     steps:
       - name: 🚚 Checkout Repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: ⚙️ Setup PHP 8.4 Environment
         uses: shivammathur/setup-php@v2
@@ -34,33 +32,8 @@ jobs:
           mkdir -p storage/framework/sessions
           mkdir -p storage/framework/views
           mkdir -p storage/logs
-          chmod -R 775 storage bootstrap/cache
 
-      - name: 🗜️ Package Release ZIP (Fast Transfer)
-        run: |
-          zip -r release.zip . -x \
-            ".git/*" \
-            ".github/*" \
-            "node_modules/*" \
-            "frontend/*" \
-            "tests/*" \
-            "phpunit.xml" \
-            "README.md" \
-            ".editorconfig" \
-            ".env" \
-            ".env.*" \
-            "storage/logs/*" \
-            "storage/framework/cache/data/*" \
-            "storage/framework/sessions/*" \
-            "storage/framework/views/*" \
-            "storage/app/public/*" \
-            ".claude/*" \
-            ".kiro/*" \
-            ".ai/*" \
-            "boost.json" \
-            ".phpunit.result.cache"
-
-      - name: 🚀 Sync Files via FTP to cPanel
+      - name: 🚀 Sync Files via FTP directly to public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -68,15 +41,23 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT || 21 }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          server-dir: /
+          server-dir: /public_html/
           dry-run: false
           dangerous-clean-slate: false
           exclude: |
-            **/*
-            !release.zip
-            !public/unzip.php
-
-      - name: ⚡ Instant Extraction on Server
-        run: |
-          curl -s -f "http://finance.corecraft.my.id/unzip.php?secret=${{ secrets.DEPLOY_SECRET || 'dompetify-secret-key-2026' }}" || \
-          curl -k -L "https://finance.corecraft.my.id/unzip.php?secret=${{ secrets.DEPLOY_SECRET || 'dompetify-secret-key-2026' }}"
+            **/.git*
+            **/.git*/**
+            **/.github*/**
+            **/node_modules/**
+            **/frontend/**
+            **/tests/**
+            **/.claude/**
+            **/.kiro/**
+            **/.ai/**
+            .env
+            .env.*
+            .editorconfig
+            .phpunit.result.cache
+            phpunit.xml
+            README.md
+            boost.json
