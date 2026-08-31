@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TransactionType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,6 +19,7 @@ class Transaction extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'user_id',
         'wallet_id',
         'category_id',
         'target_wallet_id',
@@ -42,6 +44,22 @@ class Transaction extends Model
             'admin_fee' => 'decimal:2',
             'date' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the user that owns the transaction.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Scope a query to a specific user.
+     */
+    public function scopeForUser(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_id', $userId);
     }
 
     /**

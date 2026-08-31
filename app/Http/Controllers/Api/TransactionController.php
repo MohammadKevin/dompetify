@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
+use App\Models\Wallet;
 use App\Services\TransactionService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -19,11 +20,16 @@ class TransactionController extends Controller
     ) {}
 
     /**
-     * Display a listing of transactions with filtering, search, and summary stats.
+     * Display a listing of transactions with filtering, search, and summary stats scoped to current user.
      */
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $query = Transaction::with(['wallet', 'targetWallet', 'category', 'items']);
+
+        if ($user) {
+            $query->where('user_id', $user->id);
+        }
 
         // Filter by specific wallet (either source or destination in transfer)
         if ($request->filled('wallet_id')) {
@@ -99,7 +105,34 @@ class TransactionController extends Controller
     public function store(StoreTransactionRequest $request): JsonResponse
     {
         try {
-            $transaction = $this->transactionService->createTransaction($request->validated());
+            $data = $request->validated();
+            $user = $request->user();
+
+            if ($user) {
+                $data['user_id'] = $user->id;
+
+                // Validate source wallet ownership
+                $wallet = Wallet::findOrFail($data['wallet_id']);
+                if ($wallet->user_id && $wallet->user_id !== $user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda tidak memiliki akses ke dompet sumber ini.',
+                    ], 403);
+                }
+
+                // Validate target wallet ownership if transfer
+                if (! empty($data['target_wallet_id'])) {
+                    $targetWallet = Wallet::findOrFail($data['target_wallet_id']);
+                    if ($targetWallet->user_id && $targetWallet->user_id !== $user->id) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Anda tidak memiliki akses ke dompet tujuan ini.',
+                        ], 403);
+                    }
+                }
+            }
+
+            $transaction = $this->transactionService->createTransaction($data);
 
             return response()->json([
                 'success' => true,
@@ -117,8 +150,10 @@ class TransactionController extends Controller
     /**
      * Display the specified transaction.
      */
-    public function show(Transaction $transaction): JsonResponse
+    public function show(Request $request, Transaction $transaction): JsonResponse
     {
+        $this->authorizeTransactionOwnership($request, $transaction);
+
         $transaction->load(['wallet', 'targetWallet', 'category', 'items']);
 
         return response()->json([
@@ -130,8 +165,10 @@ class TransactionController extends Controller
     /**
      * Remove the specified transaction and reverse balance mutations.
      */
-    public function destroy(Transaction $transaction): JsonResponse
+    public function destroy(Request $request, Transaction $transaction): JsonResponse
     {
+        $this->authorizeTransactionOwnership($request, $transaction);
+
         try {
             $this->transactionService->deleteTransaction($transaction);
 
@@ -144,6 +181,17 @@ class TransactionController extends Controller
                 'success' => false,
                 'message' => 'Gagal menghapus transaksi: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Helper to verify transaction ownership.
+     */
+    protected function authorizeTransactionOwnership(Request $request, Transaction $transaction): void
+    {
+        $user = $request->user();
+        if ($user && $transaction->user_id && $transaction->user_id !== $user->id) {
+            abort(403, 'Akses tidak diizinkan ke transaksi pengguna lain.');
         }
     }
 }

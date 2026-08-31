@@ -13,11 +13,12 @@ use Illuminate\Http\Request;
 class CategoryController extends Controller
 {
     /**
-     * Display a listing of categories.
+     * Display a listing of categories (global defaults + user's custom categories).
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Category::query();
+        $userId = $request->user()?->id;
+        $query = Category::forUserOrGlobal($userId);
 
         if ($request->filled('type')) {
             $query->where('type', $request->query('type'));
@@ -37,11 +38,16 @@ class CategoryController extends Controller
     }
 
     /**
-     * Store a newly created category.
+     * Store a newly created category for the user.
      */
     public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $category = Category::create($request->validated());
+        $data = $request->validated();
+        if ($request->user()) {
+            $data['user_id'] = $request->user()->id;
+        }
+
+        $category = Category::create($data);
 
         return response()->json([
             'success' => true,
@@ -53,8 +59,10 @@ class CategoryController extends Controller
     /**
      * Display the specified category.
      */
-    public function show(Category $category): JsonResponse
+    public function show(Request $request, Category $category): JsonResponse
     {
+        $this->authorizeCategoryAccess($request, $category);
+
         return response()->json([
             'success' => true,
             'data' => new CategoryResource($category),
@@ -66,6 +74,8 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
+        $this->authorizeCategoryOwnership($request, $category);
+
         $category->update($request->validated());
 
         return response()->json([
@@ -78,13 +88,37 @@ class CategoryController extends Controller
     /**
      * Remove the specified category.
      */
-    public function destroy(Category $category): JsonResponse
+    public function destroy(Request $request, Category $category): JsonResponse
     {
+        $this->authorizeCategoryOwnership($request, $category);
+
         $category->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Kategori berhasil dihapus.',
         ]);
+    }
+
+    /**
+     * Check if user can view category (either system global or user's own).
+     */
+    protected function authorizeCategoryAccess(Request $request, Category $category): void
+    {
+        $user = $request->user();
+        if ($user && $category->user_id && $category->user_id !== $user->id) {
+            abort(403, 'Akses tidak diizinkan ke kategori pengguna lain.');
+        }
+    }
+
+    /**
+     * Check if user can edit/delete category (cannot edit system globals without user_id unless admin).
+     */
+    protected function authorizeCategoryOwnership(Request $request, Category $category): void
+    {
+        $user = $request->user();
+        if ($user && $category->user_id && $category->user_id !== $user->id) {
+            abort(403, 'Akses tidak diizinkan mengubah kategori pengguna lain.');
+        }
     }
 }

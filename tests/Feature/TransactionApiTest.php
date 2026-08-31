@@ -6,13 +6,17 @@ use App\Enums\CategoryType;
 use App\Enums\WalletType;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class TransactionApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected User $user;
 
     protected Wallet $walletBca;
 
@@ -26,7 +30,11 @@ class TransactionApiTest extends TestCase
     {
         parent::setUp();
 
+        $this->user = User::factory()->create();
+        Sanctum::actingAs($this->user);
+
         $this->walletBca = Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'BCA',
             'type' => WalletType::BANK,
             'balance' => 1000000.00,
@@ -34,6 +42,7 @@ class TransactionApiTest extends TestCase
         ]);
 
         $this->walletGopay = Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'GoPay',
             'type' => WalletType::E_WALLET,
             'balance' => 200000.00,
@@ -41,11 +50,13 @@ class TransactionApiTest extends TestCase
         ]);
 
         $this->foodCategory = Category::create([
+            'user_id' => $this->user->id,
             'name' => 'Makanan & Minuman',
             'type' => CategoryType::EXPENSE,
         ]);
 
         $this->salaryCategory = Category::create([
+            'user_id' => $this->user->id,
             'name' => 'Gaji Pokok',
             'type' => CategoryType::INCOME,
         ]);

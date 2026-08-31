@@ -13,11 +13,12 @@ use Illuminate\Http\Request;
 class WalletController extends Controller
 {
     /**
-     * Display a listing of all wallets with net worth calculation.
+     * Display a listing of all wallets with net worth calculation scoped to current user.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Wallet::query();
+        $user = $request->user();
+        $query = $user ? $user->wallets() : Wallet::query();
 
         if ($request->has('is_active')) {
             $query->where('is_active', filter_var($request->query('is_active'), FILTER_VALIDATE_BOOLEAN));
@@ -55,7 +56,12 @@ class WalletController extends Controller
      */
     public function store(StoreWalletRequest $request): JsonResponse
     {
-        $wallet = Wallet::create($request->validated());
+        $data = $request->validated();
+        if ($request->user()) {
+            $data['user_id'] = $request->user()->id;
+        }
+
+        $wallet = Wallet::create($data);
 
         return response()->json([
             'success' => true,
@@ -67,8 +73,10 @@ class WalletController extends Controller
     /**
      * Display the specified wallet.
      */
-    public function show(Wallet $wallet): JsonResponse
+    public function show(Request $request, Wallet $wallet): JsonResponse
     {
+        $this->authorizeWalletOwnership($request, $wallet);
+
         return response()->json([
             'success' => true,
             'data' => new WalletResource($wallet),
@@ -80,6 +88,8 @@ class WalletController extends Controller
      */
     public function update(UpdateWalletRequest $request, Wallet $wallet): JsonResponse
     {
+        $this->authorizeWalletOwnership($request, $wallet);
+
         $wallet->update($request->validated());
 
         return response()->json([
@@ -94,6 +104,8 @@ class WalletController extends Controller
      */
     public function destroy(Request $request, Wallet $wallet): JsonResponse
     {
+        $this->authorizeWalletOwnership($request, $wallet);
+
         $force = filter_var($request->query('force', false), FILTER_VALIDATE_BOOLEAN);
 
         if ($force) {
@@ -113,5 +125,16 @@ class WalletController extends Controller
             'message' => 'Dompet berhasil dinonaktifkan.',
             'data' => new WalletResource($wallet),
         ]);
+    }
+
+    /**
+     * Helper to verify wallet ownership for multi-tenancy.
+     */
+    protected function authorizeWalletOwnership(Request $request, Wallet $wallet): void
+    {
+        $user = $request->user();
+        if ($user && $wallet->user_id && $wallet->user_id !== $user->id) {
+            abort(403, 'Akses tidak diizinkan ke dompet pengguna lain.');
+        }
     }
 }

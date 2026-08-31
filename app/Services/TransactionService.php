@@ -15,6 +15,7 @@ class TransactionService
      * Create a transaction and atomically update the involved wallet balances.
      *
      * @param  array{
+     *     user_id?: int|null,
      *     wallet_id: int,
      *     category_id?: int|null,
      *     target_wallet_id?: int|null,
@@ -41,6 +42,9 @@ class TransactionService
             $adminFee = isset($data['admin_fee']) ? (float) $data['admin_fee'] : 0.00;
 
             $sourceWallet = Wallet::lockForUpdate()->findOrFail($walletId);
+
+            // Infer user_id from source wallet if not explicitly provided
+            $userId = $data['user_id'] ?? $sourceWallet->user_id;
 
             if ($type === TransactionType::EXPENSE) {
                 $sourceWallet->decrement('balance', $amount);
@@ -69,6 +73,7 @@ class TransactionService
 
             /** @var Transaction $transaction */
             $transaction = Transaction::create([
+                'user_id' => $userId,
                 'wallet_id' => $walletId,
                 'category_id' => $data['category_id'] ?? null,
                 'target_wallet_id' => $data['target_wallet_id'] ?? null,

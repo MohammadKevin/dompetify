@@ -5,33 +5,48 @@ use App\Http\Controllers\Api\ReceiptScanController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes - FinanceApp Backend
+| API Routes - Dompetify Finance App Backend
 |--------------------------------------------------------------------------
 */
 
+// Health check endpoint
 Route::get('/health', function () {
     return response()->json([
         'status' => 'healthy',
-        'service' => 'FinanceApp REST API',
+        'service' => 'Dompetify REST API',
+        'session_lifetime_minutes' => config('session.lifetime'),
+        'sanctum_expiration_minutes' => config('sanctum.expiration'),
         'timestamp' => now()->toIso8601String(),
     ]);
 });
 
-// Wallets Endpoints
-Route::apiResource('wallets', WalletController::class);
+// Public Authentication Endpoints
+Route::post('/register', [AuthController::class, 'apiRegister']);
+Route::post('/login', [AuthController::class, 'apiLogin']);
 
-// Categories Endpoints
-Route::apiResource('categories', CategoryController::class);
+// Android Notification Hook Webhook Endpoint (Protected by secret or public hook)
+Route::post('/webhook/notification', [WebhookController::class, 'handleNotification']);
 
-// Transactions Endpoints
-Route::apiResource('transactions', TransactionController::class)->except(['update']);
+// Protected Endpoints (Requires valid Sanctum Bearer Token)
+Route::middleware('auth:sanctum')->group(function () {
+    // Current User Profile & Quick Stats
+    Route::get('/me', [AuthController::class, 'apiMe']);
+    Route::post('/logout', [AuthController::class, 'apiLogout']);
 
-// Vision AI Receipt Scan Endpoint
-Route::post('receipts/scan', [ReceiptScanController::class, 'scan']);
+    // Wallets Endpoints
+    Route::apiResource('wallets', WalletController::class);
 
-// Android Notification Hook Webhook Endpoint
-Route::post('webhook/notification', [WebhookController::class, 'handleNotification']);
+    // Categories Endpoints
+    Route::apiResource('categories', CategoryController::class);
+
+    // Transactions Endpoints
+    Route::apiResource('transactions', TransactionController::class)->except(['update']);
+
+    // Vision AI Receipt Scan Endpoint
+    Route::post('receipts/scan', [ReceiptScanController::class, 'scan']);
+});

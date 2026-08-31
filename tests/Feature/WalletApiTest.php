@@ -3,17 +3,29 @@
 namespace Tests\Feature;
 
 use App\Enums\WalletType;
+use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class WalletApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        Sanctum::actingAs($this->user);
+    }
+
     public function test_can_list_wallets_with_net_worth_calculation(): void
     {
         Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'BCA',
             'type' => WalletType::BANK,
             'balance' => 5000000.00,
@@ -21,6 +33,7 @@ class WalletApiTest extends TestCase
         ]);
 
         Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'GoPay',
             'type' => WalletType::E_WALLET,
             'balance' => 300000.00,
@@ -28,6 +41,7 @@ class WalletApiTest extends TestCase
         ]);
 
         Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'Archived Wallet',
             'type' => WalletType::OTHER,
             'balance' => 1000000.00,
@@ -66,6 +80,7 @@ class WalletApiTest extends TestCase
             ->assertJsonPath('data.balance', 2500000);
 
         $this->assertDatabaseHas('wallets', [
+            'user_id' => $this->user->id,
             'name' => 'BRImo',
             'account_number' => '9876543210',
         ]);
@@ -74,6 +89,7 @@ class WalletApiTest extends TestCase
     public function test_can_update_wallet(): void
     {
         $wallet = Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'Cash Lama',
             'type' => WalletType::CASH,
             'balance' => 100000.00,
@@ -92,6 +108,7 @@ class WalletApiTest extends TestCase
     public function test_can_archive_and_force_delete_wallet(): void
     {
         $wallet = Wallet::create([
+            'user_id' => $this->user->id,
             'name' => 'OVO',
             'type' => WalletType::E_WALLET,
             'balance' => 50000.00,

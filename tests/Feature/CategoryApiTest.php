@@ -4,12 +4,23 @@ namespace Tests\Feature;
 
 use App\Enums\CategoryType;
 use App\Models\Category;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class CategoryApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+        Sanctum::actingAs($this->user);
+    }
 
     public function test_can_list_and_filter_categories(): void
     {
@@ -40,6 +51,7 @@ class CategoryApiTest extends TestCase
             ->assertJsonPath('data.name', 'Investasi Reksadana');
 
         $this->assertDatabaseHas('categories', [
+            'user_id' => $this->user->id,
             'name' => 'Investasi Reksadana',
             'type' => 'INCOME',
         ]);
@@ -47,7 +59,11 @@ class CategoryApiTest extends TestCase
 
     public function test_can_update_and_delete_category(): void
     {
-        $category = Category::create(['name' => 'Game', 'type' => CategoryType::EXPENSE]);
+        $category = Category::create([
+            'user_id' => $this->user->id,
+            'name' => 'Game',
+            'type' => CategoryType::EXPENSE,
+        ]);
 
         $update = $this->putJson("/api/categories/{$category->id}", [
             'name' => 'Hiburan & Game',

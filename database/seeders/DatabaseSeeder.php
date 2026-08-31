@@ -6,8 +6,10 @@ use App\Enums\TransactionType;
 use App\Models\Category;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,22 +18,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1. Create or retrieve Default Demo SaaS User
+        $demoUser = User::firstOrCreate(
+            ['email' => 'admin@dompetify.com'],
+            [
+                'name' => 'Demo User',
+                'password' => Hash::make('password123'),
+            ]
+        );
+
         $this->call([
-            WalletSeeder::class,
             CategorySeeder::class,
+            WalletSeeder::class,
         ]);
 
-        $bca = Wallet::where('name', 'BCA')->first();
-        $gopay = Wallet::where('name', 'GoPay')->first();
-        $cash = Wallet::where('name', 'Dompet Tunai')->first();
+        // Associate all initial wallets with the demo user if unassigned
+        Wallet::whereNull('user_id')->update(['user_id' => $demoUser->id]);
+
+        $bca = Wallet::where('name', 'BCA')->where('user_id', $demoUser->id)->first();
+        $gopay = Wallet::where('name', 'GoPay')->where('user_id', $demoUser->id)->first();
 
         $foodCat = Category::where('name', 'Makanan & Minuman')->first();
         $salaryCat = Category::where('name', 'Gaji Pokok')->first();
-        $shoppingCat = Category::where('name', 'Belanja & Kebutuhan')->first();
 
         // Sample initial salary transaction
         if ($bca && $salaryCat) {
             Transaction::firstOrCreate([
+                'user_id' => $demoUser->id,
                 'description' => 'Gaji Bulan Ini',
                 'wallet_id' => $bca->id,
             ], [
@@ -46,6 +59,7 @@ class DatabaseSeeder extends Seeder
         // Sample receipt transaction with itemized list
         if ($gopay && $foodCat) {
             $tx = Transaction::firstOrCreate([
+                'user_id' => $demoUser->id,
                 'description' => 'Makan Siang & Kopi di Kopi Kenangan',
                 'wallet_id' => $gopay->id,
             ], [
