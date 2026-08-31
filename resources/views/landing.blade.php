@@ -22,7 +22,7 @@
                     <!-- Badge -->
                     <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-50 border border-brand-200/80 text-brand-800 text-xs font-bold shadow-sm">
                         <span class="flex h-2 w-2 rounded-full bg-brand-500 animate-pulse"></span>
-                        ✨ Rilis Terbaru: Dompetify Android APK v1.2.0 Tersedia!
+                        ✨ Rilis Terbaru: Dompetify Android APK v{{ $release['version'] ?? '1.2.0' }} Tersedia!
                     </div>
 
                     <!-- Main Headline -->

@@ -31,7 +31,7 @@
             <!-- Left Card: Android APK Direct Download (Highlighted) -->
             <div class="md:col-span-7 bg-white rounded-3xl p-8 sm:p-10 border-2 border-brand-500 shadow-2xl shadow-brand-500/10 flex flex-col justify-between relative overflow-hidden">
                 <div class="absolute top-0 right-0 bg-brand-500 text-white text-[11px] font-black uppercase px-4 py-1 rounded-bl-2xl tracking-wider">
-                    Disarankan
+                    Versi Terbaru
                 </div>
 
                 <div class="space-y-6">
@@ -43,7 +43,9 @@
                         </div>
                         <div>
                             <h2 class="text-2xl font-black text-slate-900">Android Standalone APK</h2>
-                            <p class="text-xs font-semibold text-slate-500 mt-0.5">Versi v1.2.0 • ~18.4 MB • Android 8.0+</p>
+                            <p class="text-xs font-semibold text-slate-500 mt-0.5">
+                                Versi v{{ $release['version'] ?? '1.2.0' }} • {{ $release['file_size_formatted'] ?? '18.4 MB' }} • Rilis: {{ $release['release_date'] ?? date('d M Y') }}
+                            </p>
                         </div>
                     </div>
 
@@ -51,8 +53,23 @@
                         Aplikasi native penuh dengan integrasi background camera OCR scanner, local storage cache berkecepatan tinggi, dan sesi 90 hari tanpa putus.
                     </p>
 
+                    <!-- Dynamic Changelog list -->
+                    @if(!empty($release['changelog']))
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Catatan Rilis v{{ $release['version'] ?? '1.2.0' }}:</span>
+                            <ul class="space-y-1.5 text-xs text-slate-600">
+                                @foreach($release['changelog'] as $change)
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-brand-600 font-bold">•</span>
+                                        <span>{{ $change }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <!-- Features checklist -->
-                    <ul class="space-y-2.5 text-xs font-semibold text-slate-700">
+                    <ul class="space-y-2 text-xs font-semibold text-slate-700">
                         <li class="flex items-center gap-2.5">
                             <span class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-[10px] font-bold">✓</span>
                             <span>Akses Kamera Langsung untuk Scan Struk AI</span>
@@ -74,10 +91,10 @@
                         <svg class="w-6 h-6 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                        <span>Unduh File APK Langsung</span>
+                        <span>Unduh File APK v{{ $release['version'] ?? '1.2.0' }}</span>
                     </a>
                     <div class="flex items-center justify-between text-[11px] text-slate-400 px-1">
-                        <span>Nama file: <code>finance-corecraft-latest.apk</code></span>
+                        <span>Nama file: <code>{{ $release['file_name'] ?? 'finance-corecraft-latest.apk' }}</code></span>
                         <span class="text-brand-600 font-bold">SHA-256 Verified</span>
                     </div>
                 </div>
@@ -169,7 +186,7 @@
             <div class="p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 overflow-x-auto">
                 <div class="flex items-center gap-2">
                     <span class="text-brand-400 font-bold">SHA-256:</span>
-                    <span class="text-slate-400 break-all select-all">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+                    <span class="text-slate-400 break-all select-all">{{ $release['sha256_checksum'] ?? 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' }}</span>
                 </div>
                 <span class="text-[10px] text-slate-500 font-sans uppercase shrink-0">Official Build</span>
             </div>

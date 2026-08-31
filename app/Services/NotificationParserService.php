@@ -29,13 +29,14 @@ class NotificationParserService
      *     transaction: Transaction|null
      * }
      */
-    public function parseAndProcess(string $rawNotification, ?string $senderApp = null, bool $autoRecord = true): array
+    public function parseAndProcess(string $rawNotification, ?string $senderApp = null, bool $autoRecord = true, ?int $userId = null): array
     {
-        $parsed = $this->parseNotification($rawNotification, $senderApp);
+        $parsed = $this->parseNotification($rawNotification, $senderApp, $userId);
 
         $transaction = null;
         if ($autoRecord && $parsed['wallet'] instanceof Wallet && $parsed['amount'] > 0) {
             $transaction = $this->transactionService->createTransaction([
+                'user_id' => $userId ?? $parsed['wallet']->user_id,
                 'wallet_id' => $parsed['wallet']->id,
                 'category_id' => $parsed['category']?->id,
                 'type' => $parsed['type'],
@@ -65,13 +66,13 @@ class NotificationParserService
      *     date: string
      * }
      */
-    public function parseNotification(string $text, ?string $appHint = null): array
+    public function parseNotification(string $text, ?string $appHint = null, ?int $userId = null): array
     {
         $detectedApp = $this->detectApp($text, $appHint);
         $type = $this->detectTransactionType($text);
         $amount = $this->extractAmount($text);
         $description = $this->extractDescription($text, $detectedApp);
-        $wallet = $this->resolveWallet($detectedApp);
+        $wallet = $this->resolveWallet($detectedApp, $userId);
         $category = $this->resolveCategory($text, $type);
 
         return [
@@ -265,14 +266,19 @@ class NotificationParserService
     /**
      * Find or match an active wallet in database based on detected provider app.
      */
-    public function resolveWallet(string $appName): ?Wallet
+    public function resolveWallet(string $appName, ?int $userId = null): ?Wallet
     {
+        $query = Wallet::active();
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
         if ($appName === 'Other') {
-            return Wallet::active()->first();
+            return $query->first();
         }
 
         // Try exact match on wallet name
-        $wallet = Wallet::active()
+        $wallet = (clone $query)
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($appName)])
             ->first();
 
@@ -281,7 +287,7 @@ class NotificationParserService
         }
 
         // Try partial match on wallet name
-        $wallet = Wallet::active()
+        $wallet = (clone $query)
             ->where('name', 'LIKE', "%{$appName}%")
             ->first();
 
@@ -290,7 +296,7 @@ class NotificationParserService
         }
 
         // Fallback to first active wallet
-        return Wallet::active()->first();
+        return $query->first();
     }
 
     /**

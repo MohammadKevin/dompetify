@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DownloadController;
+use App\Services\AppVersionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -12,9 +13,11 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Public Landing Page
-Route::get('/', function () {
-    return view('landing');
+// Public Landing Page with Dynamic App Versioning
+Route::get('/', function (AppVersionService $versionService) {
+    $release = $versionService->getLatestRelease();
+
+    return view('landing', compact('release'));
 })->name('landing');
 
 // Dedicated App Download Portal & Binary Stream

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DownloadController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,11 +26,15 @@ Route::get('/health', function () {
     ]);
 });
 
+// Public Application Release & Auto-Update Endpoints
+Route::get('/app/latest-release', [DownloadController::class, 'apiLatestRelease']);
+Route::get('/app/version', [DownloadController::class, 'apiLatestRelease']);
+
 // Public Authentication Endpoints
 Route::post('/register', [AuthController::class, 'apiRegister']);
 Route::post('/login', [AuthController::class, 'apiLogin']);
 
-// Android Notification Hook Webhook Endpoint (Protected by secret or public hook)
+// Android Notification Hook Webhook Endpoint
 Route::post('/webhook/notification', [WebhookController::class, 'handleNotification']);
 
 // Protected Endpoints (Requires valid Sanctum Bearer Token)

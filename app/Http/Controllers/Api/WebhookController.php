@@ -26,10 +26,13 @@ class WebhookController extends Controller
             $senderApp = $request->validated('sender_app');
             $autoRecord = $request->boolean('auto_record', true);
 
+            $userId = $request->user()?->id;
+
             $result = $this->notificationParserService->parseAndProcess(
                 $notificationText,
                 $senderApp,
-                $autoRecord
+                $autoRecord,
+                $userId
             );
 
             $parsed = $result['parsed'];

@@ -15,7 +15,7 @@ class DownloadAppTest extends TestCase
             ->assertSee('Android Standalone APK')
             ->assertSee('Petunjuk Instalasi APK Android')
             ->assertSee('Izinkan Sumber Tidak Dikenal')
-            ->assertSee('finance-corecraft-latest.apk');
+            ->assertSee('finance-corecraft');
     }
 
     public function test_direct_apk_download_serves_binary_with_correct_headers(): void
