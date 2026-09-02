@@ -3,6 +3,28 @@
 @section('title', 'Unduh Aplikasi Dompetify - Android APK & PWA')
 
 @section('content')
+@if(!empty($isAndroid) && $isAndroid)
+<div id="auto-download-banner" class="fixed top-0 inset-x-0 z-50 bg-gradient-to-r from-brand-600 to-emerald-600 text-white px-4 py-3 text-center shadow-lg">
+    <div class="flex items-center justify-center gap-3">
+        <svg class="w-5 h-5 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <span class="text-sm font-bold">Mengunduh Dompetify v{{ $release['version'] ?? '1.2.0' }}...</span>
+    </div>
+    <p class="text-xs text-white/80 mt-1">Cek notifikasi atau folder Download di HP kamu</p>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            window.location.href = "{{ route('download.apk') }}";
+        }, 800);
+        setTimeout(function() {
+            var banner = document.getElementById('auto-download-banner');
+            if (banner) banner.style.display = 'none';
+        }, 5000);
+    });
+</script>
+@endif
 <div class="py-12 lg:py-20 bg-slate-50 relative overflow-hidden">
     <!-- Background Accents -->
     <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-brand-200/40 via-teal-200/20 to-transparent blur-3xl -z-10"></div>

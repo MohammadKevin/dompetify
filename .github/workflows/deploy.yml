@@ -3,6 +3,10 @@ name: Deploy Laravel Backend to DomaiNesia cPanel (FTP)
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'VERSION'
+  repository_dispatch:
+    types: [version-bumped]
   workflow_dispatch:
 
 jobs:
@@ -11,29 +15,62 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🚚 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: main
 
-      - name: ⚙️ Setup PHP 8.4 Environment
+      - name: Read Version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Deploying version $VERSION (code: $VERSION_CODE)"
+
+      - name: Setup PHP 8.4 Environment
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, bcmath, curl, zip, gd
           tools: composer:v2
 
-      - name: 📦 Install Composer Dependencies (Production)
+      - name: Install Composer Dependencies (Production)
         run: |
           composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-reqs
 
-      - name: 📁 Ensure Storage Directory Structure
+      - name: Ensure Storage Directory Structure
         run: |
-          mkdir -p storage/app/public
+          mkdir -p storage/app/public/apps
           mkdir -p storage/framework/cache/data
           mkdir -p storage/framework/sessions
           mkdir -p storage/framework/views
           mkdir -p storage/logs
 
-      - name: 🚀 Sync Files via FTP directly to public_html
+      - name: Generate version.json
+        run: |
+          cat > storage/app/public/apps/version.json << EOF
+          {
+            "version": "${{ steps.version.outputs.version }}",
+            "version_code": ${{ steps.version.outputs.version_code }},
+            "file_name": "dompetify-v${{ steps.version.outputs.version }}.apk",
+            "changelog": [
+              "Auto-release dari push ke main branch",
+              "Multi-account wallet management",
+              "AI Vision Smart Receipt Scan OCR",
+              "Sesi login persistent 90 hari"
+            ],
+            "is_mandatory": false,
+            "min_supported_version": "1.0.0",
+            "updated_at": "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)"
+          }
+          EOF
+          echo "Generated version.json:"
+          cat storage/app/public/apps/version.json
+
+      - name: Sync Files via FTP directly to public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}

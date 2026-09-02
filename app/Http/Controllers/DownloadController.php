@@ -16,6 +16,7 @@ class DownloadController extends Controller
 
     /**
      * Display the application download & installation portal with dynamic version metadata.
+     * Auto-triggers APK download on Android mobile browsers.
      */
     public function index(Request $request): View|BinaryFileResponse
     {
@@ -24,8 +25,11 @@ class DownloadController extends Controller
         }
 
         $release = $this->appVersionService->getLatestRelease();
+        $userAgent = $request->userAgent() ?? '';
+        $isAndroid = stripos($userAgent, 'Android') !== false;
+        $isMobile = $isAndroid || (bool) preg_match('/Mobile|webOS|iPhone|iPad|iPod|Opera Mini/i', $userAgent);
 
-        return view('download', compact('release'));
+        return view('download', compact('release', 'isAndroid', 'isMobile'));
     }
 
     /**

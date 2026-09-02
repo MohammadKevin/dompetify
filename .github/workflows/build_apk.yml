@@ -1,9 +1,14 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [ main ]
+  repository_dispatch:
+    types: [version-bumped]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version override (leave empty to read from VERSION file)'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -13,6 +18,27 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Determine Version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+            VERSION_CODE="${{ github.event.client_payload.version_code }}"
+          elif [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          else
+            VERSION=$(cat VERSION | tr -d '[:space:]')
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Building APK v$VERSION (code: $VERSION_CODE)"
 
       - name: Set up Java JDK
         uses: actions/setup-java@v4
@@ -33,13 +59,50 @@ jobs:
           flutter create --platforms=android .
           flutter pub get
 
+      - name: Inject Version into pubspec.yaml
+        run: |
+          cd frontend
+          sed -i "s/^version: .*/version: ${{ steps.version.outputs.version }}+${{ steps.version.outputs.version_code }}/" pubspec.yaml
+          echo "Updated pubspec.yaml:"
+          grep "^version:" pubspec.yaml
+
       - name: Build APK Release
         run: |
           cd frontend
-          flutter build apk --release
+          flutter build apk --release \
+            --build-name=${{ steps.version.outputs.version }} \
+            --build-number=${{ steps.version.outputs.version_code }}
+
+      - name: Rename APK with Version
+        run: |
+          mkdir -p artifacts
+          cp frontend/build/app/outputs/flutter-apk/app-release.apk \
+            artifacts/dompetify-v${{ steps.version.outputs.version }}.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dompetify-app-release
-          path: frontend/build/app/outputs/flutter-apk/app-release.apk
+          name: dompetify-v${{ steps.version.outputs.version }}
+          path: artifacts/dompetify-v${{ steps.version.outputs.version }}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Dompetify v${{ steps.version.outputs.version }}
+          body: |
+            ## Dompetify v${{ steps.version.outputs.version }}
+
+            Auto-generated release from push to `main`.
+
+            ### Download
+            - **APK**: `dompetify-v${{ steps.version.outputs.version }}.apk`
+
+            ### Version Info
+            - Version: `${{ steps.version.outputs.version }}`
+            - Version Code: `${{ steps.version.outputs.version_code }}`
+          files: artifacts/dompetify-v${{ steps.version.outputs.version }}.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,7 +14,7 @@ return [
 
     'app_name' => env('APP_NAME', 'Dompetify'),
 
-    'default_version' => env('APP_LATEST_VERSION', '1.2.0'),
+    'default_version' => env('APP_LATEST_VERSION', trim(file_exists(base_path('VERSION')) ? file_get_contents(base_path('VERSION')) : '1.0.0')),
 
     'min_supported_version' => env('APP_MIN_SUPPORTED_VERSION', '1.0.0'),
 
