@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - 'VERSION'
 
+permissions:
+  contents: write
+
 jobs:
   bump-version:
     name: Bump Patch Version
